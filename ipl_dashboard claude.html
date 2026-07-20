@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL 2026 — Executive Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #F5C518; --gold2: #E8A900;
+  --dark: #0A0A0F; --dark2: #12121A; --dark3: #1A1A26; --dark4: #22223A;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+  --text: #F0F0F8; --muted: #8888AA; --muted2: #5A5A7A;
+  --MI:#1D7EC7; --RR:#E91E8C; --KKR:#5E2D91; --HYD:#FF6B1A; --CSK:#F5C518;
+  --GUJ:#1C4EA1; --RCB:#CC1A24; --LKN:#8BBFFF; --DEL:#0096D4; --PBKS:#D62B2B;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+/* HEADER */
+.hdr{background:var(--dark2);border-bottom:1px solid var(--border2);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100}
+.hdr-brand{display:flex;align-items:center;gap:12px}
+.hdr-logo{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);letter-spacing:2px}
+.hdr-sub{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0.08em;text-transform:uppercase}
+.hdr-right{font-size:11px;color:var(--muted2)}
+/* FILTERS */
+.filter-bar{background:var(--dark3);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
+select,input{background:var(--dark4);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
+select:focus,input:focus{border-color:var(--gold)}
+.filter-sep{width:1px;height:28px;background:var(--border2);margin:0 4px}
+/* TEAM PICKER */
+.team-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.team-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid transparent;font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .18s;white-space:nowrap;letter-spacing:0.02em;color:#fff}
+.team-btn .tbdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.team-btn.active{box-shadow:0 0 0 2px rgba(255,255,255,0.25)}
+.team-btn:not(.active){opacity:0.45;filter:grayscale(30%)}
+.team-btn:hover{opacity:0.85}
+.team-btn.all-btn{background:var(--dark4);border-color:var(--border2);color:var(--muted)}
+.team-btn.all-btn.active{border-color:var(--gold);color:var(--gold);opacity:1;box-shadow:0 0 0 2px rgba(245,197,24,0.2)}
+/* MAIN */
+.main{padding:24px 28px;display:flex;flex-direction:column;gap:24px}
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.kpi{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.k1::before{background:var(--gold)}
+.kpi.k2::before{background:#4ECDC4}
+.kpi.k3::before{background:#FF6B6B}
+.kpi.k4::before{background:#A78BFA}
+.kpi.k5::before{background:#34D399}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--gold);line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+/* GRID LAYOUTS */
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.row-3-1{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.row-1-2{display:grid;grid-template-columns:1fr 2fr;gap:20px}
+/* CARD */
+.card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title span{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);letter-spacing:1px;text-transform:none}
+.chart-wrap{position:relative}
+canvas{display:block}
+/* HEATMAP */
+.heatmap{overflow-x:auto}
+.heatmap table{border-collapse:collapse;width:100%;min-width:500px}
+.heatmap th{font-size:9px;text-transform:uppercase;color:var(--muted);padding:4px 6px;text-align:center;font-weight:500}
+.heatmap td{width:38px;height:32px;text-align:center;font-size:10px;font-weight:600;border-radius:4px;cursor:pointer;transition:opacity .15s;position:relative}
+.heatmap td.win{background:rgba(52,211,153,0.25);color:#34D399}
+.heatmap td.loss{background:rgba(239,68,68,0.18);color:#EF4444}
+.heatmap td.self{background:transparent;color:var(--muted2)}
+.heatmap td.win:hover,.heatmap td.loss:hover{opacity:0.7}
+/* BRACKET */
+.bracket{display:flex;gap:0;align-items:center;justify-content:center;padding:10px 0}
+.bracket-col{display:flex;flex-direction:column;gap:16px;align-items:center}
+.bracket-col-label{font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;text-align:center}
+.bracket-match{background:var(--dark3);border:1px solid var(--border2);border-radius:8px;width:140px;overflow:hidden}
+.bracket-team{padding:7px 10px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:6px}
+.bracket-team.won{background:rgba(245,197,24,0.12);color:var(--gold)}
+.bracket-team.lost{color:var(--muted)}
+.bracket-team .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.bracket-team.won .dot{background:var(--gold)}
+.bracket-team.lost .dot{background:var(--muted2)}
+.bracket-divider{height:1px;background:var(--border)}
+.bracket-connector{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px}
+.bracket-line{width:28px;height:1px;background:var(--border2)}
+.bracket-line-v{width:1px;height:56px;background:var(--border2)}
+.champion{background:linear-gradient(135deg,rgba(245,197,24,0.15),rgba(245,197,24,0.05));border:2px solid var(--gold);border-radius:10px;padding:14px 18px;text-align:center;width:160px}
+.champion-crown{font-size:22px;margin-bottom:4px}
+.champion-name{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);letter-spacing:1px}
+.champion-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
+/* INSIGHTS */
+.insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.insight{background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.6}
+.insight strong{color:var(--text);display:block;font-weight:500;margin-bottom:4px;font-size:13px}
+/* SIDE PANEL */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;backdrop-filter:blur(2px)}
+.panel-overlay.open{display:flex;justify-content:flex-end}
+.side-panel{background:var(--dark2);border-left:1px solid var(--border2);width:340px;height:100%;overflow-y:auto;padding:24px;animation:slideIn .25s ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.panel-close{position:absolute;top:18px;right:18px;background:var(--dark4);border:1px solid var(--border2);border-radius:6px;color:var(--muted);width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+.panel-close:hover{color:var(--text)}
+.panel-name{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);margin-bottom:2px;letter-spacing:1px}
+.panel-team{font-size:12px;color:var(--muted);margin-bottom:16px}
+.panel-role{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;background:var(--dark4);border:1px solid var(--border2);color:var(--muted);margin-bottom:16px}
+.panel-salary{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);margin-bottom:18px}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-key{font-size:12px;color:var(--muted)}
+.stat-val{font-size:12px;font-weight:600;color:var(--text)}
+.match-bars{margin-top:14px}
+.match-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.match-opp{font-size:10px;color:var(--muted);width:60px;flex-shrink:0}
+.match-bar-wrap{flex:1;background:var(--dark4);border-radius:3px;height:14px;overflow:hidden}
+.match-bar{height:100%;border-radius:3px;background:var(--gold);transition:width .5s}
+.match-score{font-size:11px;color:var(--text);font-weight:600;width:28px;text-align:right;flex-shrink:0}
+/* TOOLTIP */
+.tooltip{position:fixed;background:var(--dark2);border:1px solid var(--border2);border-radius:8px;padding:10px 13px;font-size:12px;pointer-events:none;z-index:300;max-width:220px;display:none;line-height:1.7}
+.tooltip-name{font-weight:600;color:var(--text);margin-bottom:3px}
+/* ROLE LEGEND */
+.role-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.role-dot{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.role-dot span{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--dark)}
+::-webkit-scrollbar-thumb{background:var(--dark4);border-radius:3px}
+/* TEAM COLOR DOTS */
+.team-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;flex-shrink:0}
+/* RESPONSIVE */
+@media(max-width:1100px){.row-2,.row-3,.row-3-1,.row-1-2,.kpi-strip,.insights-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">IPL 2026</div>
+    <div class="hdr-sub">Executive Intelligence Dashboard</div>
+  </div>
+  <div class="hdr-right">Champion: <strong style="color:var(--gold)">Delhi Capitals</strong> &nbsp;|&nbsp; 10 Teams &nbsp;|&nbsp; 110 Players</div>
+</header>
+
+<!-- FILTERS -->
+<div class="filter-bar">
+  <div class="filter-group" style="align-items:center;flex-wrap:wrap">
+    <span class="filter-label">Team</span>
+    <div class="team-picker" id="team-picker">
+      <button class="team-btn all-btn active" data-team="ALL">All</button>
+      <button class="team-btn active" data-team="MI" style="background:#1D7EC7;border-color:#1D7EC7"><span class="tbdot" style="background:#fff"></span>MI</button>
+      <button class="team-btn active" data-team="RR" style="background:#E91E8C;border-color:#E91E8C"><span class="tbdot" style="background:#fff"></span>RR</button>
+      <button class="team-btn active" data-team="KKR" style="background:#5E2D91;border-color:#5E2D91"><span class="tbdot" style="background:#fff"></span>KKR</button>
+      <button class="team-btn active" data-team="Hyderabad" style="background:#FF6B1A;border-color:#FF6B1A"><span class="tbdot" style="background:#fff"></span>HYD</button>
+      <button class="team-btn active" data-team="CSK" style="background:#c9a100;border-color:#c9a100"><span class="tbdot" style="background:#fff"></span>CSK</button>
+      <button class="team-btn active" data-team="Gujarat" style="background:#1C4EA1;border-color:#1C4EA1"><span class="tbdot" style="background:#fff"></span>GT</button>
+      <button class="team-btn active" data-team="RCB" style="background:#CC1A24;border-color:#CC1A24"><span class="tbdot" style="background:#fff"></span>RCB</button>
+      <button class="team-btn active" data-team="Lucknow" style="background:#3B82C4;border-color:#3B82C4"><span class="tbdot" style="background:#fff"></span>LSG</button>
+      <button class="team-btn active" data-team="Delhi" style="background:#0096D4;border-color:#0096D4"><span class="tbdot" style="background:#fff"></span>DC</button>
+      <button class="team-btn active" data-team="PBKS" style="background:#D62B2B;border-color:#D62B2B"><span class="tbdot" style="background:#fff"></span>PBKS</button>
+    </div>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Role</span>
+    <select id="f-role">
+      <option value="ALL">All Roles</option>
+      <option value="Batter">Batter</option>
+      <option value="Bowler">Bowler</option>
+      <option value="All-rounder">All-rounder</option>
+      <option value="Wicket-keeper batter">Wicket-keeper</option>
+      <option value="Opening batter">Opening batter</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Metric</span>
+    <select id="f-metric">
+      <option value="totalRuns">Runs</option>
+      <option value="wickets">Wickets</option>
+      <option value="salary">Salary</option>
+      <option value="fours">Fours</option>
+      <option value="sixes">Sixes</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Player Search</span>
+    <input type="text" id="f-player-search" placeholder="Search player..." style="width:160px">
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Player Form</span>
+    <select id="f-player-line" style="min-width:180px"></select>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi k1">
+      <div class="kpi-label">Total Runs</div>
+      <div class="kpi-val" id="kpi-runs">—</div>
+      <div class="kpi-sub">Across all players</div>
+    </div>
+    <div class="kpi k2">
+      <div class="kpi-label">Total Wickets</div>
+      <div class="kpi-val" id="kpi-wkts">—</div>
+      <div class="kpi-sub">Across all players</div>
+    </div>
+    <div class="kpi k3">
+      <div class="kpi-label">Highest Scorer</div>
+      <div class="kpi-val" id="kpi-top-score" style="font-size:20px">—</div>
+      <div class="kpi-sub" id="kpi-top-score-sub">—</div>
+    </div>
+    <div class="kpi k4">
+      <div class="kpi-label">Most MOM Awards</div>
+      <div class="kpi-val" id="kpi-motm" style="font-size:20px">—</div>
+      <div class="kpi-sub" id="kpi-motm-sub">—</div>
+    </div>
+    <div class="kpi k5">
+      <div class="kpi-label">Salary Spend</div>
+      <div class="kpi-val" id="kpi-salary" style="font-size:22px">—</div>
+      <div class="kpi-sub">Total tournament spend</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Points Leaderboard + Team Runs -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">📊 <span>Team Points Leaderboard</span></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="c-points"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏏 <span>Team Total Runs</span></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="c-team-runs"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Top Scorers + Top Wicket Takers -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">⚡ <span>Top 10 Run Scorers</span></div>
+      <div class="chart-wrap" style="height:300px"><canvas id="c-top-scorers"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 <span>Top Wicket Takers</span></div>
+      <div class="chart-wrap" style="height:300px"><canvas id="c-wickets"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Salary vs Performance (full width) -->
+  <div class="card">
+    <div class="card-title">💰 <span>Salary vs Performance — Value Analysis</span></div>
+    <div style="display:flex;gap:20px;align-items:flex-start">
+      <div class="chart-wrap" style="flex:1;height:340px"><canvas id="c-scatter"></canvas></div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Role Legend</div>
+        <div class="role-legend" id="role-legend" style="flex-direction:column"></div>
+        <div style="margin-top:16px;font-size:11px;color:var(--muted)">Dot size = Wickets<br>⭐ = Best value</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Batting Breakdown + Role Distribution -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">🏏 <span>Batting Breakdown by Team</span></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="c-batting"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 <span>Player Role Distribution</span></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="c-roles"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Salary Distribution (full width) -->
+  <div class="card">
+    <div class="card-title">💵 <span>Salary Distribution by Team — Min / Avg / Max</span></div>
+    <div class="chart-wrap" style="height:280px"><canvas id="c-salary"></canvas></div>
+  </div>
+
+  <!-- ROW 6: Player Form Line Chart (full width) -->
+  <div class="card">
+    <div class="card-title">📈 <span>Player Match-by-Match Form</span></div>
+    <div class="chart-wrap" style="height:260px"><canvas id="c-form"></canvas></div>
+  </div>
+
+  <!-- ROW 7: Heatmap + MOM Leaderboard -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">🔥 <span>Head-to-Head Results Heatmap</span></div>
+      <div class="heatmap" id="heatmap-container"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🥇 <span>Man of the Match Leaderboard</span></div>
+      <div id="motm-table"></div>
+    </div>
+  </div>
+
+  <!-- BRACKET -->
+  <div class="card">
+    <div class="card-title">🏆 <span>Tournament Bracket</span></div>
+    <div class="bracket" id="bracket"></div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="card">
+    <div class="card-title">💡 <span>AI Insights</span></div>
+    <div class="insights-grid" id="insights"></div>
+  </div>
+
+</div>
+
+<!-- SIDE PANEL -->
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel(event)">
+  <div class="side-panel" id="side-panel">
+    <div class="panel-close" onclick="closePanel()">✕</div>
+    <div class="panel-name" id="p-name"></div>
+    <div class="panel-team" id="p-team"></div>
+    <span class="panel-role" id="p-role"></span>
+    <div class="panel-salary" id="p-salary"></div>
+    <div id="p-stats"></div>
+    <div class="match-bars" id="p-matches"></div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ===================== DATA =====================
+const RAW = {"players":[{"id":1,"name":"Rohit sharma","team":"MI","role":"Batter","salary":16564525,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"Suryakumar Yadav","team":"MI","role":"Batter","salary":16000000,"matchScores":{"RR":25,"PBKS":22,"KKR":25,"Hyderabad":20,"CSK":32,"Gujarat":32,"RCB":3,"Lucknow":23,"Delhi":21},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":54,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":203},{"id":3,"name":"Trent Boult","team":"MI","role":"Bowler","salary":1200000,"matchScores":{"RR":10,"PBKS":10,"KKR":12,"Hyderabad":39,"CSK":32,"Gujarat":24,"RCB":4,"Lucknow":1,"Delhi":32},"fours":32,"sixes":5,"runs2":10,"runs3":5,"runs1":35,"dotBalls":6,"catches":2,"wickets":5,"motm":3,"totalRuns":164},{"id":4,"name":"Hardik Pandya","team":"MI","role":"All-rounder","salary":1672222,"matchScores":{"RR":35,"PBKS":84,"KKR":85,"Hyderabad":67,"CSK":25,"Gujarat":36,"RCB":88,"Lucknow":5,"Delhi":22},"fours":22,"sixes":8,"runs2":6,"runs3":4,"runs1":26,"dotBalls":10,"catches":4,"wickets":4,"motm":2,"totalRuns":447},{"id":5,"name":"Jasprit Bumrah","team":"MI","role":"Bowler","salary":1800000,"matchScores":{"RR":12,"PBKS":36,"KKR":37,"Hyderabad":19,"CSK":4,"Gujarat":21,"RCB":63,"Lucknow":6,"Delhi":21},"fours":10,"sixes":9,"runs2":11,"runs3":2,"runs1":15,"dotBalls":21,"catches":0,"wickets":10,"motm":1,"totalRuns":219},{"id":6,"name":"Tilak Varma","team":"MI","role":"Batter","salary":8000000,"matchScores":{"RR":62,"PBKS":44,"KKR":64,"Hyderabad":52,"CSK":1,"Gujarat":22,"RCB":21,"Lucknow":77,"Delhi":25},"fours":10,"sixes":7,"runs2":19,"runs3":3,"runs1":65,"dotBalls":8,"catches":0,"wickets":0,"motm":0,"totalRuns":368},{"id":7,"name":"Quinton de Kock","team":"MI","role":"Wicket-keeper batter","salary":100000,"matchScores":{"RR":42,"PBKS":98,"KKR":98,"Hyderabad":85,"CSK":1,"Gujarat":11,"RCB":35,"Lucknow":25,"Delhi":65},"fours":3,"sixes":2,"runs2":15,"runs3":5,"runs1":18,"dotBalls":21,"catches":6,"wickets":0,"motm":0,"totalRuns":460},{"id":8,"name":"Will Jacks","team":"MI","role":"All-rounder","salary":5250000,"matchScores":{"RR":33,"PBKS":23,"KKR":32,"Hyderabad":63,"CSK":1,"Gujarat":55,"RCB":31,"Lucknow":32,"Delhi":41},"fours":25,"sixes":3,"runs2":17,"runs3":10,"runs1":36,"dotBalls":12,"catches":3,"wickets":6,"motm":0,"totalRuns":311},{"id":13,"name":"Mayank Rawat","team":"MI","role":"Batter","salary":3000000,"matchScores":{"RR":21,"PBKS":68,"KKR":22,"Hyderabad":36,"CSK":20,"Gujarat":0,"RCB":5,"Lucknow":22,"Delhi":4},"fours":7,"sixes":6,"runs2":6,"runs3":9,"runs1":15,"dotBalls":25,"catches":1,"wickets":3,"motm":0,"totalRuns":198},{"id":14,"name":"Sherfane Rutherford","team":"MI","role":"Batter","salary":2600000,"matchScores":{"RR":27,"PBKS":64,"KKR":10,"Hyderabad":24,"CSK":10,"Gujarat":0,"RCB":7,"Lucknow":22,"Delhi":6},"fours":2,"sixes":5,"runs2":5,"runs3":0,"runs1":0,"dotBalls":24,"catches":6,"wickets":0,"motm":1,"totalRuns":170},{"id":15,"name":"Naman Dhir","team":"MI","role":"All-rounder","salary":5982233,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":98,"CSK":0,"Gujarat":0,"RCB":17,"Lucknow":10,"Delhi":7},"fours":3,"sixes":1,"runs2":7,"runs3":0,"runs1":2,"dotBalls":22,"catches":7,"wickets":9,"motm":0,"totalRuns":234},{"id":1,"name":"Riyan Parag","team":"RR","role":"All-rounder","salary":10325975,"matchScores":{"RR":40,"PBKS":22,"KKR":55,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":33,"Lucknow":11,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":334},{"id":2,"name":"Yashasvi Jaiswal","team":"RR","role":"Opening-batter","salary":1353536,"matchScores":{"RR":40,"PBKS":32,"KKR":32,"Hyderabad":20,"CSK":40,"Gujarat":20,"RCB":36,"Lucknow":11,"Delhi":30},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":3,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":261},{"id":3,"name":"Ravindra Jadeja","team":"RR","role":"All-rounder","salary":22566310,"matchScores":{"RR":40,"PBKS":35,"KKR":5,"Hyderabad":74,"CSK":32,"Gujarat":24,"RCB":14,"Lucknow":11,"Delhi":30},"fours":8,"sixes":5,"runs2":10,"runs3":5,"runs1":35,"dotBalls":6,"catches":6,"wickets":6,"motm":6,"totalRuns":265},{"id":8,"name":"Shimron Hetmyer","team":"RR","role":"Batter","salary":22500000,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":24,"RCB":14,"Lucknow":11,"Delhi":30},"fours":70,"sixes":70,"runs2":19,"runs3":70,"runs1":36,"dotBalls":12,"catches":3,"wickets":6,"motm":3,"totalRuns":286},{"id":9,"name":"Wanindu Hasaranga","team":"RR","role":"All-rounder","salary":40199999,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":24,"RCB":14,"Lucknow":11,"Delhi":30},"fours":6,"sixes":4,"runs2":19,"runs3":22,"runs1":14,"dotBalls":12,"catches":4,"wickets":5,"motm":3,"totalRuns":286},{"id":10,"name":"Vaibhav Sooryavanshi","team":"RR","role":"Batter","salary":70000000,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":24,"RCB":14,"Lucknow":11,"Delhi":30},"fours":8,"sixes":2,"runs2":19,"runs3":3,"runs1":52,"dotBalls":12,"catches":2,"wickets":8,"motm":3,"totalRuns":286},{"id":11,"name":"Nandre Burger","team":"RR","role":"Bowler","salary":39000000,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":0,"RCB":14,"Lucknow":11,"Delhi":30},"fours":10,"sixes":2,"runs2":19,"runs3":6,"runs1":84,"dotBalls":12,"catches":15,"wickets":15,"motm":15,"totalRuns":262},{"id":12,"name":"Shubham Dubey","team":"RR","role":"Batter","salary":20023698,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":0,"RCB":63,"Lucknow":70,"Delhi":2},"fours":3,"sixes":1,"runs2":7,"runs3":8,"runs1":36,"dotBalls":12,"catches":1,"wickets":5,"motm":3,"totalRuns":342},{"id":13,"name":"Tushar Deshpande","team":"RR","role":"Bowler","salary":30256410,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":25,"RCB":25,"Lucknow":25,"Delhi":25},"fours":25,"sixes":25,"runs2":25,"runs3":25,"runs1":15,"dotBalls":25,"catches":12,"wickets":3,"motm":3,"totalRuns":307},{"id":14,"name":"Donovan Ferreira","team":"RR","role":"Wicket-keeper batter","salary":85656200,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":0,"RCB":63,"Lucknow":70,"Delhi":20},"fours":20,"sixes":20,"runs2":7,"runs3":20,"runs1":20,"dotBalls":20,"catches":20,"wickets":0,"motm":3,"totalRuns":360},{"id":15,"name":"Kwena Maphaka","team":"RR","role":"Bowler","salary":90122037,"matchScores":{"RR":40,"PBKS":35,"KKR":33,"Hyderabad":74,"CSK":25,"Gujarat":0,"RCB":63,"Lucknow":70,"Delhi":21},"fours":3,"sixes":1,"runs2":7,"runs3":0,"runs1":2,"dotBalls":22,"catches":7,"wickets":9,"motm":3,"totalRuns":361},{"id":1,"name":"AjinkyaRahane","team":"KKR","role":"Batter","salary":20000000,"matchScores":{"RR":2,"PBKS":7,"KKR":8,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":5,"runs3":5,"runs1":5,"dotBalls":5,"catches":5,"wickets":5,"motm":5,"totalRuns":307},{"id":2,"name":"RinkuSingh","team":"KKR","role":"Batter","salary":30000000,"matchScores":{"RR":25,"PBKS":22,"KKR":25,"Hyderabad":20,"CSK":21,"Gujarat":31,"RCB":3,"Lucknow":23,"Delhi":30},"fours":21,"sixes":5,"runs2":21,"runs3":21,"runs1":21,"dotBalls":21,"catches":21,"wickets":21,"motm":21,"totalRuns":200},{"id":3,"name":"SunilNarine","team":"KKR","role":"All-rounder","salary":12637726,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":21,"Gujarat":31,"RCB":3,"Lucknow":1,"Delhi":30},"fours":32,"sixes":5,"runs2":10,"runs3":5,"runs1":35,"dotBalls":6,"catches":2,"wickets":5,"motm":3,"totalRuns":153},{"id":4,"name":"VarunChakravarthy","team":"KKR","role":"Bowler","salary":16999210,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":21,"Gujarat":31,"RCB":3,"Lucknow":5,"Delhi":30},"fours":22,"sixes":5,"runs2":6,"runs3":5,"runs1":26,"dotBalls":6,"catches":4,"wickets":5,"motm":2,"totalRuns":157},{"id":5,"name":"CameronGreen","team":"KKR","role":"All-rounder","salary":18000074,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":21,"Gujarat":31,"RCB":3,"Lucknow":6,"Delhi":30},"fours":10,"sixes":5,"runs2":11,"runs3":5,"runs1":15,"dotBalls":6,"catches":0,"wickets":5,"motm":2,"totalRuns":158},{"id":10,"name":"RamandeepSingh","team":"KKR","role":"All-rounder","salary":1200000,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":21,"Gujarat":31,"RCB":3,"Lucknow":35,"Delhi":30},"fours":8,"sixes":5,"runs2":13,"runs3":5,"runs1":52,"dotBalls":6,"catches":0,"wickets":5,"motm":2,"totalRuns":187},{"id":11,"name":"AngkrishRaghuvanshi","team":"KKR","role":"Batter","salary":13000000,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":14,"Gujarat":31,"RCB":3,"Lucknow":96,"Delhi":30},"fours":10,"sixes":2,"runs2":12,"runs3":6,"runs1":84,"dotBalls":6,"catches":0,"wickets":5,"motm":2,"totalRuns":241},{"id":12,"name":"KartikTyagi","team":"KKR","role":"Bowler","salary":14000232,"matchScores":{"RR":25,"PBKS":10,"KKR":12,"Hyderabad":20,"CSK":2,"Gujarat":31,"RCB":3,"Lucknow":33,"Delhi":30},"fours":3,"sixes":1,"runs2":10,"runs3":8,"runs1":36,"dotBalls":6,"catches":1,"wickets":5,"motm":2,"totalRuns":166},{"id":13,"name":"VaibhavArora","team":"KKR","role":"Bowler","salary":1577741,"matchScores":{"RR":21,"PBKS":68,"KKR":12,"Hyderabad":20,"CSK":20,"Gujarat":31,"RCB":5,"Lucknow":22,"Delhi":30},"fours":7,"sixes":7,"runs2":7,"runs3":7,"runs1":7,"dotBalls":7,"catches":7,"wickets":7,"motm":7,"totalRuns":229},{"id":14,"name":"TimSeifert","team":"KKR","role":"Wicket-keeper batter","salary":1676665,"matchScores":{"RR":27,"PBKS":64,"KKR":10,"Hyderabad":20,"CSK":10,"Gujarat":31,"RCB":7,"Lucknow":22,"Delhi":30},"fours":2,"sixes":5,"runs2":5,"runs3":0,"runs1":0,"dotBalls":6,"catches":6,"wickets":0,"motm":1,"totalRuns":221},{"id":15,"name":"RahulTripathi","team":"KKR","role":"Batter","salary":17444427,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":20,"CSK":0,"Gujarat":31,"RCB":17,"Lucknow":10,"Delhi":30},"fours":3,"sixes":1,"runs2":7,"runs3":0,"runs1":2,"dotBalls":6,"catches":7,"wickets":9,"motm":0,"totalRuns":210},{"id":1,"name":"Pat Cummins","team":"Hyderabad","role":"Bowler","salary":16000000,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"TravisHead","team":"Hyderabad","role":"Opening batter","salary":15000000,"matchScores":{"RR":25,"PBKS":22,"KKR":25,"Hyderabad":20,"CSK":20,"Gujarat":20,"RCB":20,"Lucknow":20,"Delhi":21},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":54,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":193},{"id":3,"name":"AbhishekSharma","team":"Hyderabad","role":"All-rounder","salary":45000000,"matchScores":{"RR":10,"PBKS":10,"KKR":25,"Hyderabad":39,"CSK":32,"Gujarat":24,"RCB":4,"Lucknow":1,"Delhi":32},"fours":32,"sixes":5,"runs2":10,"runs3":5,"runs1":35,"dotBalls":6,"catches":2,"wickets":0,"motm":3,"totalRuns":177},{"id":4,"name":"IshanKishan","team":"Hyderabad","role":"Wicket-keeper batter","salary":5000000,"matchScores":{"RR":35,"PBKS":10,"KKR":25,"Hyderabad":67,"CSK":25,"Gujarat":36,"RCB":4,"Lucknow":1,"Delhi":22},"fours":22,"sixes":8,"runs2":6,"runs3":4,"runs1":26,"dotBalls":6,"catches":4,"wickets":0,"motm":2,"totalRuns":225},{"id":5,"name":"HeinrichKlaasen","team":"Hyderabad","role":"Wicket-keeper batter","salary":6000000,"matchScores":{"RR":27,"PBKS":10,"KKR":25,"Hyderabad":19,"CSK":4,"Gujarat":21,"RCB":4,"Lucknow":1,"Delhi":21},"fours":10,"sixes":9,"runs2":11,"runs3":4,"runs1":15,"dotBalls":6,"catches":0,"wickets":0,"motm":1,"totalRuns":132},{"id":6,"name":"NitishKumarReddy","team":"Hyderabad","role":"All-rounder","salary":5001009,"matchScores":{"RR":27,"PBKS":10,"KKR":25,"Hyderabad":52,"CSK":1,"Gujarat":21,"RCB":4,"Lucknow":1,"Delhi":25},"fours":10,"sixes":7,"runs2":19,"runs3":4,"runs1":3,"dotBalls":6,"catches":3,"wickets":0,"motm":3,"totalRuns":166},{"id":11,"name":"BrydonCarse","team":"Hyderabad","role":"Bowler","salary":4000005,"matchScores":{"RR":27,"PBKS":10,"KKR":25,"Hyderabad":63,"CSK":14,"Gujarat":21,"RCB":4,"Lucknow":1,"Delhi":65},"fours":10,"sixes":2,"runs2":12,"runs3":4,"runs1":84,"dotBalls":6,"catches":0,"wickets":0,"motm":0,"totalRuns":230},{"id":12,"name":"ShivamMavi","team":"Hyderabad","role":"Bowler","salary":16000000,"matchScores":{"RR":27,"PBKS":10,"KKR":92,"Hyderabad":63,"CSK":2,"Gujarat":0,"RCB":4,"Lucknow":1,"Delhi":65},"fours":3,"sixes":1,"runs2":10,"runs3":4,"runs1":36,"dotBalls":20,"catches":1,"wickets":0,"motm":0,"totalRuns":264},{"id":13,"name":"AniketVerma","team":"Hyderabad","role":"Batter","salary":5000001,"matchScores":{"RR":27,"PBKS":10,"KKR":22,"Hyderabad":63,"CSK":20,"Gujarat":20,"RCB":20,"Lucknow":22,"Delhi":65},"fours":7,"sixes":6,"runs2":6,"runs3":4,"runs1":15,"dotBalls":25,"catches":1,"wickets":3,"motm":0,"totalRuns":269},{"id":14,"name":"EshanMalinga","team":"Hyderabad","role":"Bowler","salary":1900005,"matchScores":{"RR":27,"PBKS":64,"KKR":10,"Hyderabad":24,"CSK":10,"Gujarat":0,"RCB":4,"Lucknow":22,"Delhi":65},"fours":2,"sixes":5,"runs2":5,"runs3":4,"runs1":5,"dotBalls":5,"catches":5,"wickets":5,"motm":5,"totalRuns":226},{"id":15,"name":"SmaranRavichandran","team":"Hyderabad","role":"Batter","salary":60001541,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":98,"CSK":0,"Gujarat":0,"RCB":4,"Lucknow":10,"Delhi":65},"fours":3,"sixes":1,"runs2":7,"runs3":4,"runs1":2,"dotBalls":22,"catches":7,"wickets":9,"motm":0,"totalRuns":279},{"id":1,"name":"Ruturaj Gaikwad","team":"CSK","role":"Batter","salary":25252500,"matchScores":{"RR":45,"PBKS":45,"KKR":45,"Hyderabad":45,"CSK":45,"Gujarat":45,"RCB":45,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":400},{"id":2,"name":"Kartik Sharma","team":"CSK","role":"Batter","salary":6363991,"matchScores":{"RR":25,"PBKS":25,"KKR":25,"Hyderabad":25,"CSK":25,"Gujarat":25,"RCB":25,"Lucknow":25,"Delhi":25},"fours":25,"sixes":6,"runs2":22,"runs3":8,"runs1":54,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":225},{"id":3,"name":"Sanju Samson","team":"CSK","role":"Wicket-keeper batter","salary":4910036,"matchScores":{"RR":10,"PBKS":10,"KKR":98,"Hyderabad":39,"CSK":32,"Gujarat":24,"RCB":4,"Lucknow":1,"Delhi":32},"fours":32,"sixes":5,"runs2":10,"runs3":10,"runs1":10,"dotBalls":10,"catches":10,"wickets":10,"motm":10,"totalRuns":250},{"id":4,"name":"Shivam Dube","team":"CSK","role":"All-rounder","salary":36101025,"matchScores":{"RR":35,"PBKS":10,"KKR":98,"Hyderabad":67,"CSK":25,"Gujarat":36,"RCB":88,"Lucknow":5,"Delhi":22},"fours":22,"sixes":8,"runs2":6,"runs3":4,"runs1":26,"dotBalls":10,"catches":4,"wickets":4,"motm":2,"totalRuns":386},{"id":5,"name":"Noor Ahmad","team":"CSK","role":"Bowler","salary":10123711,"matchScores":{"RR":12,"PBKS":10,"KKR":98,"Hyderabad":19,"CSK":4,"Gujarat":21,"RCB":63,"Lucknow":6,"Delhi":21},"fours":10,"sixes":9,"runs2":11,"runs3":2,"runs1":15,"dotBalls":21,"catches":0,"wickets":13,"motm":1,"totalRuns":254},{"id":10,"name":"Matthew Short","team":"CSK","role":"All-rounder","salary":10111213,"matchScores":{"RR":37,"PBKS":10,"KKR":27,"Hyderabad":41,"CSK":4,"Gujarat":21,"RCB":26,"Lucknow":35,"Delhi":33},"fours":8,"sixes":2,"runs2":13,"runs3":3,"runs1":3,"dotBalls":3,"catches":3,"wickets":3,"motm":3,"totalRuns":234},{"id":11,"name":"Spencer Johnson","team":"CSK","role":"Bowler","salary":27426652,"matchScores":{"RR":11,"PBKS":10,"KKR":27,"Hyderabad":36,"CSK":4,"Gujarat":21,"RCB":37,"Lucknow":96,"Delhi":22},"fours":10,"sixes":2,"runs2":12,"runs3":6,"runs1":84,"dotBalls":15,"catches":0,"wickets":6,"motm":0,"totalRuns":264},{"id":12,"name":"JaCSKe Overton","team":"CSK","role":"All-rounder","salary":99999910,"matchScores":{"RR":35,"PBKS":10,"KKR":27,"Hyderabad":96,"CSK":4,"Gujarat":21,"RCB":1,"Lucknow":33,"Delhi":2},"fours":3,"sixes":1,"runs2":10,"runs3":8,"runs1":36,"dotBalls":20,"catches":1,"wickets":5,"motm":0,"totalRuns":229},{"id":13,"name":"Sarfaraz Khan","team":"CSK","role":"Batter","salary":45373677,"matchScores":{"RR":21,"PBKS":68,"KKR":27,"Hyderabad":36,"CSK":20,"Gujarat":0,"RCB":5,"Lucknow":22,"Delhi":4},"fours":7,"sixes":6,"runs2":6,"runs3":9,"runs1":15,"dotBalls":25,"catches":1,"wickets":3,"motm":0,"totalRuns":203},{"id":14,"name":"Anshul Kamboj","team":"CSK","role":"Bowler","salary":99999999,"matchScores":{"RR":27,"PBKS":27,"KKR":27,"Hyderabad":27,"CSK":27,"Gujarat":27,"RCB":27,"Lucknow":27,"Delhi":27},"fours":27,"sixes":27,"runs2":27,"runs3":27,"runs1":27,"dotBalls":24,"catches":6,"wickets":0,"motm":1,"totalRuns":243},{"id":15,"name":"Ayush Mhatre","team":"CSK","role":"Opening batter","salary":29000000,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":98,"CSK":0,"Gujarat":0,"RCB":17,"Lucknow":10,"Delhi":10},"fours":10,"sixes":10,"runs2":10,"runs3":10,"runs1":10,"dotBalls":10,"catches":10,"wickets":10,"motm":10,"totalRuns":237},{"id":1,"name":"ShubmanGill","team":"Gujarat","role":"Batter","salary":1900000,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"SaiKishore","team":"Gujarat","role":"Bowler","salary":45451253,"matchScores":{"RR":25,"PBKS":25,"KKR":25,"Hyderabad":25,"CSK":25,"Gujarat":25,"RCB":25,"Lucknow":25,"Delhi":25},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":8,"dotBalls":8,"catches":8,"wickets":8,"motm":8,"totalRuns":225},{"id":3,"name":"RashidKhan","team":"Gujarat","role":"All-rounder","salary":19064566,"matchScores":{"RR":10,"PBKS":10,"KKR":12,"Hyderabad":39,"CSK":32,"Gujarat":24,"RCB":4,"Lucknow":1,"Delhi":32},"fours":32,"sixes":5,"runs2":10,"runs3":5,"runs1":35,"dotBalls":6,"catches":2,"wickets":5,"motm":3,"totalRuns":164},{"id":8,"name":"ShahrukhKhan","team":"Gujarat","role":"Batter","salary":3698851,"matchScores":{"RR":42,"PBKS":60,"KKR":64,"Hyderabad":63,"CSK":63,"Gujarat":22,"RCB":63,"Lucknow":77,"Delhi":41},"fours":25,"sixes":3,"runs2":17,"runs3":10,"runs1":36,"dotBalls":12,"catches":3,"wickets":1,"motm":0,"totalRuns":495},{"id":9,"name":"MohammedSiraj","team":"Gujarat","role":"Bowler","salary":9991000,"matchScores":{"RR":42,"PBKS":68,"KKR":64,"Hyderabad":74,"CSK":25,"Gujarat":22,"RCB":28,"Lucknow":77,"Delhi":32},"fours":6,"sixes":6,"runs2":6,"runs3":6,"runs1":6,"dotBalls":6,"catches":6,"wickets":6,"motm":6,"totalRuns":432},{"id":10,"name":"GlennPhillips","team":"Gujarat","role":"All-rounder","salary":6000000,"matchScores":{"RR":42,"PBKS":76,"KKR":64,"Hyderabad":41,"CSK":25,"Gujarat":22,"RCB":26,"Lucknow":77,"Delhi":33},"fours":8,"sixes":2,"runs2":13,"runs3":3,"runs1":52,"dotBalls":17,"catches":0,"wickets":7,"motm":1,"totalRuns":406},{"id":11,"name":"KagisoRabada","team":"Gujarat","role":"Bowler","salary":5999940,"matchScores":{"RR":42,"PBKS":84,"KKR":64,"Hyderabad":41,"CSK":25,"Gujarat":22,"RCB":2,"Lucknow":77,"Delhi":2},"fours":2,"sixes":2,"runs2":2,"runs3":2,"runs1":2,"dotBalls":2,"catches":2,"wickets":2,"motm":2,"totalRuns":359},{"id":12,"name":"LukeWood","team":"Gujarat","role":"Bowler","salary":2626119,"matchScores":{"RR":42,"PBKS":92,"KKR":64,"Hyderabad":41,"CSK":25,"Gujarat":22,"RCB":1,"Lucknow":77,"Delhi":2},"fours":3,"sixes":1,"runs2":10,"runs3":8,"runs1":36,"dotBalls":20,"catches":1,"wickets":5,"motm":0,"totalRuns":366},{"id":13,"name":"WashingtonSundar","team":"Gujarat","role":"All-rounder","salary":414141,"matchScores":{"RR":21,"PBKS":100,"KKR":64,"Hyderabad":41,"CSK":20,"Gujarat":0,"RCB":5,"Lucknow":77,"Delhi":4},"fours":7,"sixes":6,"runs2":6,"runs3":9,"runs1":15,"dotBalls":25,"catches":1,"wickets":3,"motm":0,"totalRuns":332},{"id":14,"name":"TomBanton","team":"Gujarat","role":"Wicket-keeper batter","salary":12262865,"matchScores":{"RR":27,"PBKS":64,"KKR":64,"Hyderabad":41,"CSK":10,"Gujarat":0,"RCB":7,"Lucknow":22,"Delhi":6},"fours":2,"sixes":5,"runs2":5,"runs3":0,"runs1":0,"dotBalls":24,"catches":6,"wickets":0,"motm":1,"totalRuns":241},{"id":15,"name":"RahulTewatia","team":"Gujarat","role":"All-rounder","salary":10202525,"matchScores":{"RR":67,"PBKS":25,"KKR":64,"Hyderabad":41,"CSK":0,"Gujarat":0,"RCB":17,"Lucknow":10,"Delhi":7},"fours":3,"sixes":3,"runs2":3,"runs3":3,"runs1":3,"dotBalls":3,"catches":3,"wickets":3,"motm":3,"totalRuns":231},{"id":1,"name":"ViratKohli","team":"RCB","role":"Batter","salary":11228866,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"RasikhSalam","team":"RCB","role":"Bowler","salary":16005599,"matchScores":{"RR":25,"PBKS":22,"KKR":22,"Hyderabad":22,"CSK":22,"Gujarat":22,"RCB":3,"Lucknow":23,"Delhi":21},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":54,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":182},{"id":3,"name":"RajatPatidar","team":"RCB","role":"Batter","salary":12500000,"matchScores":{"RR":10,"PBKS":10,"KKR":12,"Hyderabad":39,"CSK":32,"Gujarat":32,"RCB":4,"Lucknow":1,"Delhi":32},"fours":32,"sixes":5,"runs2":5,"runs3":5,"runs1":5,"dotBalls":5,"catches":5,"wickets":5,"motm":3,"totalRuns":172},{"id":4,"name":"SuyashSharma","team":"RCB","role":"Bowler","salary":16893110,"matchScores":{"RR":35,"PBKS":84,"KKR":12,"Hyderabad":67,"CSK":32,"Gujarat":32,"RCB":88,"Lucknow":5,"Delhi":22},"fours":22,"sixes":8,"runs2":6,"runs3":4,"runs1":26,"dotBalls":10,"catches":4,"wickets":4,"motm":3,"totalRuns":377},{"id":5,"name":"BhuvneshwarKumar","team":"RCB","role":"Bowler","salary":1800000,"matchScores":{"RR":35,"PBKS":12,"KKR":12,"Hyderabad":12,"CSK":32,"Gujarat":32,"RCB":12,"Lucknow":12,"Delhi":12},"fours":10,"sixes":9,"runs2":11,"runs3":2,"runs1":15,"dotBalls":21,"catches":0,"wickets":10,"motm":3,"totalRuns":171},{"id":6,"name":"NuwanThushara","team":"RCB","role":"Bowler","salary":8000000,"matchScores":{"RR":35,"PBKS":44,"KKR":12,"Hyderabad":52,"CSK":32,"Gujarat":32,"RCB":1,"Lucknow":1,"Delhi":1},"fours":1,"sixes":1,"runs2":19,"runs3":3,"runs1":65,"dotBalls":8,"catches":0,"wickets":0,"motm":3,"totalRuns":210},{"id":7,"name":"PhilSalt","team":"RCB","role":"Wicket-keeper batter","salary":10000000,"matchScores":{"RR":35,"PBKS":42,"KKR":12,"Hyderabad":42,"CSK":32,"Gujarat":32,"RCB":42,"Lucknow":42,"Delhi":1},"fours":1,"sixes":1,"runs2":15,"runs3":15,"runs1":15,"dotBalls":15,"catches":15,"wickets":0,"motm":3,"totalRuns":280},{"id":8,"name":"YashDayal","team":"RCB","role":"Bowler","salary":5852369,"matchScores":{"RR":35,"PBKS":23,"KKR":12,"Hyderabad":63,"CSK":32,"Gujarat":32,"RCB":31,"Lucknow":32,"Delhi":1},"fours":1,"sixes":1,"runs2":17,"runs3":10,"runs1":36,"dotBalls":12,"catches":3,"wickets":6,"motm":3,"totalRuns":261},{"id":13,"name":"VenkateshIyer","team":"RCB","role":"All-rounder","salary":30000000,"matchScores":{"RR":21,"PBKS":68,"KKR":22,"Hyderabad":22,"CSK":22,"Gujarat":22,"RCB":22,"Lucknow":22,"Delhi":4},"fours":7,"sixes":6,"runs2":12,"runs3":3,"runs1":6,"dotBalls":17,"catches":6,"wickets":3,"motm":3,"totalRuns":225},{"id":14,"name":"DevduttPadikkal","team":"RCB","role":"Batter","salary":26233333,"matchScores":{"RR":27,"PBKS":27,"KKR":27,"Hyderabad":27,"CSK":27,"Gujarat":27,"RCB":27,"Lucknow":27,"Delhi":6},"fours":2,"sixes":5,"runs2":12,"runs3":3,"runs1":0,"dotBalls":17,"catches":6,"wickets":0,"motm":3,"totalRuns":222},{"id":15,"name":"JiteshSharma","team":"RCB","role":"Wicket-keeper batter","salary":5555789,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":98,"CSK":0,"Gujarat":0,"RCB":17,"Lucknow":10,"Delhi":7},"fours":3,"sixes":1,"runs2":12,"runs3":3,"runs1":2,"dotBalls":17,"catches":7,"wickets":9,"motm":3,"totalRuns":234},{"id":1,"name":"RishabhPant","team":"Lucknow","role":"Wicket-keeper batter","salary":17300000,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":6,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"AyushBadoni","team":"Lucknow","role":"Batter","salary":26350000,"matchScores":{"RR":25,"PBKS":25,"KKR":25,"Hyderabad":20,"CSK":32,"Gujarat":32,"RCB":3,"Lucknow":23,"Delhi":21},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":54,"dotBalls":6,"catches":3,"wickets":0,"motm":0,"totalRuns":206},{"id":3,"name":"NicholasPooran","team":"Lucknow","role":"Wicket-keeper batter","salary":1500000,"matchScores":{"RR":10,"PBKS":25,"KKR":12,"Hyderabad":20,"CSK":32,"Gujarat":24,"RCB":3,"Lucknow":1,"Delhi":32},"fours":21,"sixes":6,"runs2":22,"runs3":8,"runs1":35,"dotBalls":6,"catches":2,"wickets":5,"motm":3,"totalRuns":159},{"id":4,"name":"ShahbazAhmed","team":"Lucknow","role":"All-rounder","salary":16350000,"matchScores":{"RR":10,"PBKS":25,"KKR":85,"Hyderabad":20,"CSK":32,"Gujarat":36,"RCB":3,"Lucknow":1,"Delhi":32},"fours":21,"sixes":6,"runs2":22,"runs3":4,"runs1":26,"dotBalls":10,"catches":2,"wickets":4,"motm":2,"totalRuns":244},{"id":5,"name":"MohammedShami","team":"Lucknow","role":"Bowler","salary":10000000,"matchScores":{"RR":10,"PBKS":25,"KKR":85,"Hyderabad":20,"CSK":32,"Gujarat":36,"RCB":3,"Lucknow":1,"Delhi":32},"fours":21,"sixes":6,"runs2":22,"runs3":2,"runs1":15,"dotBalls":21,"catches":2,"wickets":4,"motm":1,"totalRuns":244},{"id":6,"name":"JoshInglis","team":"Lucknow","role":"Wicket-keeper batter","salary":30000000,"matchScores":{"RR":10,"PBKS":25,"KKR":64,"Hyderabad":20,"CSK":32,"Gujarat":36,"RCB":3,"Lucknow":1,"Delhi":32},"fours":21,"sixes":6,"runs2":22,"runs3":3,"runs1":15,"dotBalls":8,"catches":2,"wickets":4,"motm":0,"totalRuns":223},{"id":11,"name":"WaninduHasaranga","team":"Lucknow","role":"All-rounder","salary":3000000,"matchScores":{"RR":10,"PBKS":0,"KKR":0,"Hyderabad":0,"CSK":0,"Gujarat":0,"RCB":0,"Lucknow":0,"Delhi":0},"fours":10,"sixes":6,"runs2":12,"runs3":5,"runs1":15,"dotBalls":12,"catches":0,"wickets":6,"motm":0,"totalRuns":10},{"id":12,"name":"AbdulSamad","team":"Lucknow","role":"Batter","salary":2000000,"matchScores":{"RR":10,"PBKS":25,"KKR":15,"Hyderabad":96,"CSK":2,"Gujarat":0,"RCB":1,"Lucknow":1,"Delhi":32},"fours":3,"sixes":6,"runs2":10,"runs3":8,"runs1":15,"dotBalls":12,"catches":1,"wickets":5,"motm":0,"totalRuns":182},{"id":13,"name":"MayankYadav","team":"Lucknow","role":"Bowler","salary":500000000,"matchScores":{"RR":21,"PBKS":68,"KKR":15,"Hyderabad":36,"CSK":20,"Gujarat":0,"RCB":5,"Lucknow":1,"Delhi":32},"fours":7,"sixes":6,"runs2":6,"runs3":9,"runs1":15,"dotBalls":25,"catches":1,"wickets":3,"motm":3,"totalRuns":198},{"id":14,"name":"AnrichNortje","team":"Lucknow","role":"Bowler","salary":260000000,"matchScores":{"RR":21,"PBKS":64,"KKR":10,"Hyderabad":24,"CSK":20,"Gujarat":0,"RCB":7,"Lucknow":22,"Delhi":6},"fours":2,"sixes":6,"runs2":5,"runs3":0,"runs1":15,"dotBalls":24,"catches":6,"wickets":0,"motm":0,"totalRuns":174},{"id":15,"name":"AveshKhan","team":"Lucknow","role":"Bowler","salary":225000000,"matchScores":{"RR":21,"PBKS":0,"KKR":0,"Hyderabad":0,"CSK":0,"Gujarat":0,"RCB":0,"Lucknow":0,"Delhi":0},"fours":3,"sixes":6,"runs2":7,"runs3":0,"runs1":15,"dotBalls":22,"catches":7,"wickets":9,"motm":9,"totalRuns":21},{"id":1,"name":"AxarPatel","team":"Delhi","role":"All-rounder","salary":12300000,"matchScores":{"RR":63,"PBKS":52,"KKR":36,"Hyderabad":58,"CSK":34,"Gujarat":68,"RCB":80,"Lucknow":29,"Delhi":47},"fours":14,"sixes":16,"runs2":74,"runs3":14,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":467},{"id":2,"name":"KLRahul","team":"Delhi","role":"Wicket-keeper batter","salary":10030520,"matchScores":{"RR":41,"PBKS":67,"KKR":58,"Hyderabad":42,"CSK":75,"Gujarat":75,"RCB":28,"Lucknow":49,"Delhi":52},"fours":21,"sixes":12,"runs2":47,"runs3":7,"runs1":55,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":487},{"id":3,"name":"KuldeepYadav","team":"Delhi","role":"Bowler","salary":11952440,"matchScores":{"RR":72,"PBKS":31,"KKR":61,"Hyderabad":76,"CSK":67,"Gujarat":59,"RCB":46,"Lucknow":33,"Delhi":61},"fours":32,"sixes":19,"runs2":7,"runs3":5,"runs1":35,"dotBalls":6,"catches":3,"wickets":5,"motm":3,"totalRuns":506},{"id":4,"name":"DLtchellStarc","team":"Delhi","role":"Bowler","salary":12823674,"matchScores":{"RR":55,"PBKS":74,"KKR":74,"Hyderabad":35,"CSK":28,"Gujarat":57,"RCB":66,"Lucknow":45,"Delhi":47},"fours":22,"sixes":7,"runs2":38,"runs3":4,"runs1":35,"dotBalls":10,"catches":3,"wickets":4,"motm":2,"totalRuns":481},{"id":5,"name":"TNatarajan","team":"Delhi","role":"Bowler","salary":13523726,"matchScores":{"RR":34,"PBKS":45,"KKR":42,"Hyderabad":61,"CSK":64,"Gujarat":69,"RCB":40,"Lucknow":31,"Delhi":73},"fours":10,"sixes":14,"runs2":39,"runs3":2,"runs1":35,"dotBalls":10,"catches":3,"wickets":4,"motm":1,"totalRuns":459},{"id":8,"name":"AbhishekPorel","team":"Delhi","role":"Wicket-keeper batter","salary":1234495,"matchScores":{"RR":29,"PBKS":49,"KKR":50,"Hyderabad":47,"CSK":44,"Gujarat":76,"RCB":34,"Lucknow":55,"Delhi":68},"fours":25,"sixes":18,"runs2":81,"runs3":10,"runs1":35,"dotBalls":12,"catches":3,"wickets":4,"motm":1,"totalRuns":452},{"id":9,"name":"AshutoshSharma","team":"Delhi","role":"Batter","salary":1600000,"matchScores":{"RR":47,"PBKS":29,"KKR":29,"Hyderabad":72,"CSK":36,"Gujarat":55,"RCB":73,"Lucknow":57,"Delhi":40},"fours":17,"sixes":9,"runs2":3,"runs3":2,"runs1":35,"dotBalls":19,"catches":4,"wickets":5,"motm":1,"totalRuns":438},{"id":12,"name":"KarunNair","team":"Delhi","role":"Batter","salary":16801236,"matchScores":{"RR":61,"PBKS":64,"KKR":64,"Hyderabad":87,"CSK":37,"Gujarat":28,"RCB":21,"Lucknow":59,"Delhi":35},"fours":6,"sixes":2,"runs2":55,"runs3":8,"runs1":36,"dotBalls":15,"catches":1,"wickets":5,"motm":1,"totalRuns":456},{"id":13,"name":"PathumNissanka","team":"Delhi","role":"Opening batter","salary":18723994,"matchScores":{"RR":44,"PBKS":71,"KKR":74,"Hyderabad":66,"CSK":68,"Gujarat":23,"RCB":39,"Lucknow":41,"Delhi":44},"fours":15,"sixes":15,"runs2":31,"runs3":9,"runs1":15,"dotBalls":15,"catches":1,"wickets":3,"motm":0,"totalRuns":470},{"id":14,"name":"SameerRizvi","team":"Delhi","role":"Batter","salary":16583002,"matchScores":{"RR":75,"PBKS":81,"KKR":81,"Hyderabad":25,"CSK":78,"Gujarat":26,"RCB":49,"Lucknow":67,"Delhi":38},"fours":8,"sixes":17,"runs2":28,"runs3":4,"runs1":0,"dotBalls":15,"catches":6,"wickets":0,"motm":1,"totalRuns":520},{"id":15,"name":"NitishRana","team":"Delhi","role":"Batter","salary":2665283,"matchScores":{"RR":67,"PBKS":40,"KKR":41,"Hyderabad":80,"CSK":24,"Gujarat":31,"RCB":65,"Lucknow":62,"Delhi":46},"fours":11,"sixes":8,"runs2":46,"runs3":0,"runs1":2,"dotBalls":22,"catches":7,"wickets":9,"motm":0,"totalRuns":456},{"id":1,"name":"ShreyasIyer","team":"PBKS","role":"Batter","salary":14000000,"matchScores":{"RR":45,"PBKS":25,"KKR":98,"Hyderabad":91,"CSK":21,"Gujarat":31,"RCB":62,"Lucknow":55,"Delhi":30},"fours":14,"sixes":5,"runs2":33,"runs3":9,"runs1":48,"dotBalls":10,"catches":5,"wickets":0,"motm":1,"totalRuns":458},{"id":2,"name":"ArshdeepSingh","team":"PBKS","role":"Bowler","salary":1300000,"matchScores":{"RR":67,"PBKS":22,"KKR":25,"Hyderabad":20,"CSK":32,"Gujarat":32,"RCB":3,"Lucknow":23,"Delhi":30},"fours":21,"sixes":6,"runs2":22,"runs3":2,"runs1":54,"dotBalls":2,"catches":3,"wickets":0,"motm":0,"totalRuns":254},{"id":3,"name":"YuzvendraChahal","team":"PBKS","role":"Bowler","salary":1100000,"matchScores":{"RR":67,"PBKS":10,"KKR":12,"Hyderabad":39,"CSK":32,"Gujarat":24,"RCB":4,"Lucknow":1,"Delhi":30},"fours":32,"sixes":5,"runs2":10,"runs3":2,"runs1":35,"dotBalls":6,"catches":2,"wickets":5,"motm":3,"totalRuns":219},{"id":4,"name":"MarcusStoinis","team":"PBKS","role":"All-rounder","salary":20001547,"matchScores":{"RR":67,"PBKS":10,"KKR":85,"Hyderabad":67,"CSK":25,"Gujarat":36,"RCB":88,"Lucknow":5,"Delhi":30},"fours":22,"sixes":8,"runs2":6,"runs3":2,"runs1":26,"dotBalls":10,"catches":4,"wickets":4,"motm":3,"totalRuns":413},{"id":5,"name":"ShashankSingh","team":"PBKS","role":"Batter","salary":52154559,"matchScores":{"RR":67,"PBKS":10,"KKR":37,"Hyderabad":19,"CSK":4,"Gujarat":21,"RCB":63,"Lucknow":6,"Delhi":30},"fours":22,"sixes":9,"runs2":11,"runs3":2,"runs1":15,"dotBalls":21,"catches":4,"wickets":10,"motm":3,"totalRuns":257},{"id":10,"name":"LockieFerguson","team":"PBKS","role":"Bowler","salary":67676700,"matchScores":{"RR":67,"PBKS":10,"KKR":67,"Hyderabad":19,"CSK":44,"Gujarat":2,"RCB":26,"Lucknow":6,"Delhi":30},"fours":22,"sixes":2,"runs2":13,"runs3":3,"runs1":52,"dotBalls":17,"catches":4,"wickets":8,"motm":3,"totalRuns":271},{"id":11,"name":"HarpreetBrar","team":"PBKS","role":"All-rounder","salary":14000001,"matchScores":{"RR":67,"PBKS":10,"KKR":43,"Hyderabad":19,"CSK":44,"Gujarat":2,"RCB":37,"Lucknow":6,"Delhi":30},"fours":22,"sixes":2,"runs2":12,"runs3":6,"runs1":84,"dotBalls":15,"catches":4,"wickets":6,"motm":3,"totalRuns":258},{"id":12,"name":"XavierBartlett","team":"PBKS","role":"Bowler","salary":19003600,"matchScores":{"RR":67,"PBKS":10,"KKR":92,"Hyderabad":19,"CSK":44,"Gujarat":0,"RCB":1,"Lucknow":6,"Delhi":30},"fours":3,"sixes":1,"runs2":10,"runs3":8,"runs1":36,"dotBalls":20,"catches":4,"wickets":5,"motm":3,"totalRuns":269},{"id":13,"name":"YashThakur","team":"PBKS","role":"Bowler","salary":52154999,"matchScores":{"RR":67,"PBKS":10,"KKR":22,"Hyderabad":19,"CSK":44,"Gujarat":0,"RCB":5,"Lucknow":22,"Delhi":30},"fours":7,"sixes":6,"runs2":6,"runs3":9,"runs1":15,"dotBalls":25,"catches":4,"wickets":3,"motm":0,"totalRuns":219},{"id":14,"name":"VijaykumarVyshak","team":"PBKS","role":"Bowler","salary":2020059,"matchScores":{"RR":67,"PBKS":10,"KKR":10,"Hyderabad":24,"CSK":10,"Gujarat":0,"RCB":7,"Lucknow":22,"Delhi":30},"fours":2,"sixes":5,"runs2":5,"runs3":0,"runs1":0,"dotBalls":24,"catches":6,"wickets":0,"motm":1,"totalRuns":180},{"id":15,"name":"PriyanshArya","team":"PBKS","role":"Batter","salary":67670001,"matchScores":{"RR":67,"PBKS":25,"KKR":10,"Hyderabad":98,"CSK":0,"Gujarat":0,"RCB":17,"Lucknow":10,"Delhi":7},"fours":3,"sixes":1,"runs2":7,"runs3":0,"runs1":2,"dotBalls":22,"catches":7,"wickets":9,"motm":0,"totalRuns":234}],"qfMatrix":{"MI":{"RR":2,"KKR":2,"HYDERABAD":0,"CSK":0,"GUJRAT":2,"RCB":0,"LUCKNOW":2,"DELHI":0,"PBKS":2},"RR":{"RR":0,"KKR":0,"HYDERABAD":2,"CSK":0,"GUJRAT":2,"RCB":0,"LUCKNOW":0,"DELHI":0,"PBKS":2},"KKR":{"RR":0,"KKR":0,"HYDERABAD":2,"CSK":2,"GUJRAT":0,"RCB":0,"LUCKNOW":2,"DELHI":0,"PBKS":2},"HYDERABAD":{"RR":0,"KKR":0,"HYDERABAD":0,"CSK":0,"GUJRAT":0,"RCB":2,"LUCKNOW":2,"DELHI":2,"PBKS":2},"CSK":{"RR":0,"KKR":0,"HYDERABAD":2,"CSK":0,"GUJRAT":0,"RCB":0,"LUCKNOW":0,"DELHI":2,"PBKS":2},"GUJRAT":{"RR":0,"KKR":2,"HYDERABAD":2,"CSK":0,"GUJRAT":0,"RCB":0,"LUCKNOW":0,"DELHI":0,"PBKS":2},"RCB":{"RR":2,"KKR":0,"HYDERABAD":2,"CSK":0,"GUJRAT":0,"RCB":0,"LUCKNOW":0,"DELHI":2,"PBKS":2},"LUCKNOW":{"RR":2,"KKR":2,"HYDERABAD":2,"CSK":0,"GUJRAT":2,"RCB":2,"LUCKNOW":0,"DELHI":0,"PBKS":2},"DELHI":{"RR":2,"KKR":2,"HYDERABAD":2,"CSK":2,"GUJRAT":2,"RCB":2,"LUCKNOW":2,"DELHI":0,"PBKS":2},"PBKS":{"RR":2,"KKR":2,"HYDERABAD":2,"CSK":0,"GUJRAT":2,"RCB":2,"LUCKNOW":0,"DELHI":2,"PBKS":0}},"qfTeams":["MI","RR","KKR","HYDERABAD","CSK","GUJRAT","RCB","LUCKNOW","DELHI","PBKS"],"qfPoints":{"MI":10,"RR":6,"KKR":8,"HYDERABAD":8,"CSK":6,"GUJRAT":6,"RCB":8,"LUCKNOW":12,"DELHI":16,"PBKS":12},"wicketTakers":[{"name":"Jasprit Bumrah","team":"MI","wickets":10},{"name":"Nandre Burger","team":"RR","wickets":15},{"name":"RinkuSingh","team":"KKR","wickets":21},{"name":"SmaranRavichandran","team":"Hyderabad","wickets":9},{"name":"Noor Ahmad","team":"CSK","wickets":13},{"name":"SaiKishore","team":"Gujarat","wickets":8},{"name":"BhuvneshwarKumar","team":"RCB","wickets":10},{"name":"AveshKhan","team":"Lucknow","wickets":9},{"name":"NitishRana","team":"Delhi","wickets":9},{"name":"ShashankSingh","team":"PBKS","wickets":10}],"bracket":{"qf_qualifiers":["DELHI","LUCKNOW","PBKS","MI"],"sf":[{"match":"SF1","teams":["DELHI","LUCKNOW"],"winner":"DELHI"},{"match":"SF2","teams":["PBKS","MI"],"winner":"MI"}],"final":{"teams":["DELHI","MI"],"winner":"DELHI"}}};
+
+// ===================== CONFIG =====================
+const TEAM_COLORS = {MI:'#1D7EC7',RR:'#E91E8C',KKR:'#7C3AED',Hyderabad:'#FF6B1A',CSK:'#F5C518',Gujarat:'#1C4EA1',RCB:'#CC1A24',Lucknow:'#60A5FA',Delhi:'#0096D4',PBKS:'#EF4444'};
+const ROLE_COLORS = {'Batter':'#F5C518','Bowler':'#EF4444','All-rounder':'#34D399','Wicket-keeper batter':'#A78BFA','Opening batter':'#60A5FA','Opening-batter':'#60A5FA','Opening batter':'#60A5FA'};
+const TEAMS = ['MI','RR','KKR','Hyderabad','CSK','Gujarat','RCB','Lucknow','Delhi','PBKS'];
+const OPPONENTS = ['RR','PBKS','KKR','Hyderabad','CSK','Gujarat','RCB','Lucknow','Delhi'];
+const chartInstances = {};
+
+function tc(hex,a=1){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${a})`}
+
+// Default chart options
+Chart.defaults.color='#8888AA';
+Chart.defaults.borderColor='rgba(255,255,255,0.07)';
+Chart.defaults.font.family="'DM Sans',sans-serif";
+
+function mkChart(id,cfg){
+  if(chartInstances[id]){chartInstances[id].destroy()}
+  chartInstances[id]=new Chart(document.getElementById(id).getContext('2d'),cfg);
+  return chartInstances[id];
+}
+
+// ===================== FILTERS =====================
+let FILTERS={team:'ALL',role:'ALL',metric:'totalRuns',search:''};
+
+function getFiltered(){
+  let ps=[...RAW.players];
+  if(FILTERS.team!=='ALL') ps=ps.filter(p=>p.team===FILTERS.team);
+  if(FILTERS.role!=='ALL') ps=ps.filter(p=>p.role===FILTERS.role||p.role.toLowerCase()===FILTERS.role.toLowerCase());
+  if(FILTERS.search) ps=ps.filter(p=>p.name.toLowerCase().includes(FILTERS.search.toLowerCase()));
+  return ps;
+}
+
+// Team picker button logic
+document.getElementById('team-picker').addEventListener('click',e=>{
+  const btn=e.target.closest('.team-btn');
+  if(!btn) return;
+  const team=btn.dataset.team;
+  // Update active state
+  document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  FILTERS.team=team;
+  renderAll();
+});
+// Also sync filterByTeam clicks
+
+document.getElementById('f-role').addEventListener('change',e=>{FILTERS.role=e.target.value;renderAll()});
+document.getElementById('f-metric').addEventListener('change',e=>{FILTERS.metric=e.target.value;renderAll()});
+document.getElementById('f-player-search').addEventListener('input',e=>{FILTERS.search=e.target.value;renderAll()});
+document.getElementById('f-player-line').addEventListener('change',e=>{renderFormChart(e.target.value)});
+
+// ===================== KPIs =====================
+function renderKPIs(players){
+  const totalRuns=players.reduce((s,p)=>s+p.totalRuns,0);
+  const totalWkts=players.reduce((s,p)=>s+p.wickets,0);
+  const topScorer=players.slice().sort((a,b)=>b.totalRuns-a.totalRuns)[0];
+  const topMOTM=players.slice().sort((a,b)=>b.motm-a.motm)[0];
+  const totalSalary=players.reduce((s,p)=>s+p.salary,0);
+  document.getElementById('kpi-runs').textContent=totalRuns.toLocaleString();
+  document.getElementById('kpi-wkts').textContent=totalWkts.toLocaleString();
+  document.getElementById('kpi-top-score').textContent=topScorer?(topScorer.totalRuns+' runs'):'—';
+  document.getElementById('kpi-top-score-sub').textContent=topScorer?`${topScorer.name} (${topScorer.team})`:'—';
+  document.getElementById('kpi-motm').textContent=topMOTM?(topMOTM.motm+' awards'):'—';
+  document.getElementById('kpi-motm-sub').textContent=topMOTM?`${topMOTM.name} (${topMOTM.team})`:'—';
+  const cr=(totalSalary/10000000).toFixed(1);
+  document.getElementById('kpi-salary').textContent='₹'+cr+' Cr';
+}
+
+// ===================== CHART 1: POINTS =====================
+function renderPoints(){
+  const sorted=Object.entries(RAW.qfPoints).sort((a,b)=>b[1]-a[1]);
+  const labels=sorted.map(([t])=>t);
+  const vals=sorted.map(([,v])=>v);
+  const bgs=labels.map((t,i)=>{
+    const tmap={'MI':'MI','RR':'RR','KKR':'KKR','HYDERABAD':'Hyderabad','CSK':'CSK','GUJRAT':'Gujarat','RCB':'RCB','LUCKNOW':'Lucknow','DELHI':'Delhi','PBKS':'PBKS'};
+    const col=TEAM_COLORS[tmap[t]]||'#888';
+    return i===0?tc(col,1):i<=2?tc(col,.7):tc(col,.45);
+  });
+  mkChart('c-points',{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:bgs,borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} pts`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8888AA'}},y:{grid:{display:false},ticks:{color:'#E0E0F0',font:{size:11}}}}}});
+}
+
+// ===================== CHART 2: TEAM RUNS =====================
+function renderTeamRuns(players){
+  const byTeam={};
+  TEAMS.forEach(t=>byTeam[t]=0);
+  players.forEach(p=>{byTeam[p.team]=(byTeam[p.team]||0)+p[FILTERS.metric==='salary'?'salary':FILTERS.metric]});
+  const vals=TEAMS.map(t=>byTeam[t]);
+  const avg=vals.reduce((s,v)=>s+v,0)/TEAMS.length;
+  mkChart('c-team-runs',{type:'bar',data:{labels:TEAMS,datasets:[{label:'Team Total',data:vals,backgroundColor:TEAMS.map(t=>tc(TEAM_COLORS[t],.7)),borderColor:TEAMS.map(t=>TEAM_COLORS[t]),borderWidth:1,borderRadius:4},{type:'line',label:'Avg',data:TEAMS.map(()=>Math.round(avg)),borderColor:'#F5C518',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toLocaleString()}`}}},onClick:(e,els)=>{if(els.length){const t=TEAMS[els[0].index];filterByTeam(t)}},scales:{x:{grid:{display:false},ticks:{color:'#8888AA',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}}}}}});
+}
+
+// ===================== CHART 3: TOP SCORERS =====================
+function renderTopScorers(players){
+  const sorted=[...players].sort((a,b)=>b[FILTERS.metric]-a[FILTERS.metric]).slice(0,10);
+  mkChart('c-top-scorers',{type:'bar',data:{labels:sorted.map(p=>p.name),datasets:[{data:sorted.map(p=>p[FILTERS.metric]),backgroundColor:sorted.map(p=>tc(TEAM_COLORS[p.team],.8)),borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=sorted[c.dataIndex];return[`Team: ${p.team}`,`${FILTERS.metric}: ${c.raw.toLocaleString()}`]}}}},onClick:(e,els)=>{if(els.length)openPanel(sorted[els[0].index])},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#E0E0F0',font:{size:10}}}}}});
+}
+
+// ===================== CHART 4: WICKET TAKERS =====================
+function renderWickets(){
+  const sorted=[...RAW.wicketTakers].sort((a,b)=>b.wickets-a.wickets);
+  mkChart('c-wickets',{type:'bar',data:{labels:sorted.map(w=>w.name),datasets:[{data:sorted.map(w=>w.wickets),backgroundColor:sorted.map(w=>tc(TEAM_COLORS[w.team]||'#888',.8)),borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const w=sorted[c.dataIndex];return[`Team: ${w.team}`,`Wickets: ${c.raw}`]}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#E0E0F0',font:{size:10}}}}}});
+}
+
+// ===================== CHART 5: SCATTER =====================
+function renderScatter(players){
+  const roles=[...new Set(players.map(p=>p.role))];
+  const datasets=roles.map(r=>{
+    const rps=players.filter(p=>p.role===r);
+    // median salary for value detection
+    const salaries=players.map(p=>p.salary).sort((a,b)=>a-b);
+    const medSal=salaries[Math.floor(salaries.length/2)];
+    const medRun=players.map(p=>p.totalRuns).sort((a,b)=>a-b)[Math.floor(players.length/2)];
+    return {label:r,data:rps.map(p=>({x:p.salary/100000,y:p.totalRuns,r:Math.max(5,p.wickets*1.5+4),player:p,value:p.totalRuns>medRun&&p.salary<medSal})),backgroundColor:rps.map(p=>{const ps=players.filter(q=>q.totalRuns>players.reduce((s,x)=>s+x.totalRuns,0)/players.length&&q.salary<players.reduce((s,x)=>s+x.salary,0)/players.length);return ps.includes(p)?tc(ROLE_COLORS[r]||'#888',.9):tc(ROLE_COLORS[r]||'#888',.55)}),borderColor:rps.map(()=>ROLE_COLORS[r]||'#888'),borderWidth:1};
+  });
+  mkChart('c-scatter',{type:'bubble',data:{datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=c.raw.player;return[p.name,`Team: ${p.team}`,`Salary: ₹${(p.salary/100000).toFixed(1)}L`,`Runs: ${p.totalRuns}`,`Wickets: ${p.wickets}`]}}}},onClick:(e,els)=>{if(els.length){const d=chartInstances['c-scatter'].data.datasets[els[0].datasetIndex].data[els[0].index];openPanel(d.player)}},scales:{x:{title:{display:true,text:'Salary (₹ Lakhs)',color:'#8888AA',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}}},y:{title:{display:true,text:'Total Runs',color:'#8888AA',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}}}}}});
+  // Role legend
+  const lg=document.getElementById('role-legend');
+  lg.innerHTML='';
+  Object.entries(ROLE_COLORS).filter(([r])=>roles.includes(r)||(r==='Opening-batter'&&roles.some(x=>x.toLowerCase().includes('opening')))).forEach(([r,c])=>{
+    if(['Opening-batter','Opening batter'].includes(r)&&!roles.some(x=>x.toLowerCase().includes('opening')))return;
+    lg.innerHTML+=`<div class="role-dot"><span style="background:${c}"></span>${r}</div>`;
+  });
+}
+
+// ===================== CHART 6: BATTING BREAKDOWN =====================
+function renderBatting(players){
+  const byTeam={};
+  TEAMS.forEach(t=>{byTeam[t]={r1:0,r2:0,r3:0,r4:0,r6:0,dot:0}});
+  players.forEach(p=>{if(byTeam[p.team]){byTeam[p.team].r1+=p.runs1;byTeam[p.team].r2+=p.runs2;byTeam[p.team].r3+=p.runs3;byTeam[p.team].r4+=p.fours;byTeam[p.team].r6+=p.sixes;byTeam[p.team].dot+=p.dotBalls}});
+  const teams=FILTERS.team==='ALL'?TEAMS:[FILTERS.team];
+  const labels=teams;
+  const mk=(key,lbl,col)=>({label:lbl,data:teams.map(t=>{const d=byTeam[t]||{r1:0,r2:0,r3:0,r4:0,r6:0,dot:0};const tot=d.r1+d.r2+d.r3+d.r4+d.r6+d.dot||1;return Math.round((d[key]/tot)*100)}),backgroundColor:col,borderWidth:0,borderRadius:2});
+  mkChart('c-batting',{type:'bar',data:{labels,datasets:[mk('r1','1s','#60A5FA'),mk('r2','2s','#34D399'),mk('r3','3s','#A78BFA'),mk('r4','4s','#F5C518'),mk('r6','6s','#FF6B1A'),mk('dot','Dots','#444466')]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#8888AA',boxWidth:10,font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#8888AA',font:{size:10}}},y:{stacked:true,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10},callback:v=>v+'%'}}}}});
+}
+
+// ===================== CHART 7 (actually 8): ROLE DIST =====================
+function renderRoles(players){
+  const counts={};
+  players.forEach(p=>{const r=p.role.includes('Opening')?'Opening Batter':p.role;counts[r]=(counts[r]||0)+1});
+  const entries=Object.entries(counts);
+  mkChart('c-roles',{type:'doughnut',data:{labels:entries.map(([r])=>r),datasets:[{data:entries.map(([,v])=>v),backgroundColor:entries.map(([r])=>ROLE_COLORS[r]||ROLE_COLORS['Batter']),borderColor:'#0A0A0F',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#8888AA',font:{size:10},boxWidth:10,padding:10}},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} players (${Math.round(c.raw/players.length*100)}%)`}}}}});
+}
+
+// ===================== CHART 9: SALARY =====================
+function renderSalary(){
+  const teams=FILTERS.team==='ALL'?TEAMS:[FILTERS.team];
+  const data=teams.map(t=>{
+    const ps=RAW.players.filter(p=>p.team===t);
+    const sals=ps.map(p=>p.salary);
+    const min=Math.min(...sals),max=Math.max(...sals),avg=Math.round(sals.reduce((s,v)=>s+v,0)/sals.length);
+    const minP=ps.find(p=>p.salary===min),maxP=ps.find(p=>p.salary===max);
+    return{team:t,min,avg,max,minP,maxP};
+  });
+  mkChart('c-salary',{type:'bar',data:{labels:data.map(d=>d.team),datasets:[{label:'Min',data:data.map(d=>d.min/100000),backgroundColor:TEAMS.slice(0,teams.length).map((_,i)=>tc(TEAM_COLORS[teams[i]]||'#888',.4)),borderRadius:2},{label:'Avg',data:data.map(d=>d.avg/100000),backgroundColor:TEAMS.slice(0,teams.length).map((_,i)=>tc(TEAM_COLORS[teams[i]]||'#888',.65)),borderRadius:2},{label:'Max',data:data.map(d=>d.max/100000),backgroundColor:TEAMS.slice(0,teams.length).map((_,i)=>tc(TEAM_COLORS[teams[i]]||'#888',.9)),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#8888AA',font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ₹${c.raw.toFixed(1)}L`}}},scales:{x:{grid:{display:false},ticks:{color:'#8888AA',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10},callback:v=>'₹'+v+'L'}}}}});
+}
+
+// ===================== CHART 10: FORM =====================
+function populatePlayerDropdown(){
+  const sel=document.getElementById('f-player-line');
+  sel.innerHTML='';
+  const sorted=[...RAW.players].sort((a,b)=>a.name.localeCompare(b.name));
+  sorted.forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p.name+'|||'+p.team;
+    opt.textContent=`${p.name} (${p.team})`;
+    sel.appendChild(opt);
+  });
+  renderFormChart(sel.value);
+}
+
+function renderFormChart(val){
+  if(!val)return;
+  const [name,team]=val.split('|||');
+  const player=RAW.players.find(p=>p.name===name&&p.team===team);
+  if(!player)return;
+  const opps=Object.keys(player.matchScores);
+  const scores=opps.map(o=>player.matchScores[o]);
+  const avg=Math.round(scores.reduce((s,v)=>s+v,0)/scores.length);
+  // trend line (simple linear)
+  const n=scores.length,sx=n*(n-1)/2,sx2=n*(n-1)*(2*n-1)/6;
+  const sy=scores.reduce((s,v)=>s+v,0);
+  const sxy=scores.reduce((s,v,i)=>s+v*i,0);
+  const m=(n*sxy-sx*sy)/(n*sx2-sx*sx);
+  const b=(sy-m*sx)/n;
+  const trend=scores.map((_,i)=>Math.round(m*i+b));
+  mkChart('c-form',{type:'line',data:{labels:opps,datasets:[{label:'Score',data:scores,borderColor:TEAM_COLORS[player.team]||'#F5C518',backgroundColor:tc(TEAM_COLORS[player.team]||'#F5C518',.1),fill:true,tension:.35,pointRadius:5,pointBackgroundColor:TEAM_COLORS[player.team]||'#F5C518',borderWidth:2},{label:'Avg',data:opps.map(()=>avg),borderColor:'rgba(255,255,255,0.3)',borderDash:[5,5],borderWidth:1,pointRadius:0,fill:false},{label:'Trend',data:trend,borderColor:'#F5C518',borderDash:[3,3],borderWidth:1.5,pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#8888AA',font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}`}}},onClick:(e,els)=>{if(els.length)openPanel(player)},scales:{x:{grid:{display:false},ticks:{color:'#8888AA',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8888AA',font:{size:10}},min:0}}}});
+}
+
+// ===================== HEATMAP =====================
+function renderHeatmap(){
+  const teams=RAW.qfTeams;
+  const oppCols=Object.keys(RAW.qfMatrix[teams[0]]);
+  let html='<table><tr><th></th>'+oppCols.map(c=>`<th style="color:#5A5A7A;font-size:8px">${c}</th>`).join('')+'</tr>';
+  teams.forEach(row=>{
+    html+=`<tr><th style="text-align:right;padding-right:6px;color:#AAAACC;font-size:9px;white-space:nowrap">${row}</th>`;
+    oppCols.forEach(col=>{
+      if(row===col){html+=`<td class="self">—</td>`;return}
+      const pts=RAW.qfMatrix[row][col];
+      const cls=pts===2?'win':'loss';
+      const tip=pts===2?`${row} beat ${col}`:`${col} beat ${row}`;
+      html+=`<td class="${cls}" title="${tip}">${pts}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</table>';
+  document.getElementById('heatmap-container').innerHTML=html;
+}
+
+// ===================== MOM TABLE =====================
+function renderMOTM(players){
+  const sorted=[...players].filter(p=>p.motm>0).sort((a,b)=>b.motm-a.motm).slice(0,10);
+  let html='<div style="overflow-y:auto;max-height:300px">';
+  const medals=['🥇','🥈','🥉'];
+  sorted.forEach((p,i)=>{
+    const col=TEAM_COLORS[p.team]||'#888';
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer" onclick="openPanel(RAW.players.find(x=>x.name==='${p.name.replace(/'/g,"\\'")}'))">
+      <span style="width:20px;text-align:center">${medals[i]||'·'}</span>
+      <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></span>
+      <span style="flex:1;font-size:12px;color:#E0E0F0">${p.name}</span>
+      <span style="font-size:10px;color:#8888AA">${p.team}</span>
+      <span style="font-family:'Bebas Neue';font-size:16px;color:${col};min-width:24px;text-align:right">${p.motm}</span>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('motm-table').innerHTML=html;
+}
+
+// ===================== BRACKET =====================
+function renderBracket(){
+  const br=RAW.bracket;
+  const teamColor=t=>{const map={DELHI:'Delhi',LUCKNOW:'Lucknow',PBKS:'PBKS',MI:'MI'};return TEAM_COLORS[map[t]]||'#888'};
+  const matchHtml=(teams,winner)=>`<div class="bracket-match">
+    <div class="bracket-team ${teams[0]===winner?'won':'lost'}"><span class="dot"></span>${teams[0]}</div>
+    <div class="bracket-divider"></div>
+    <div class="bracket-team ${teams[1]===winner?'won':'lost'}"><span class="dot"></span>${teams[1]}</div>
+  </div>`;
+  document.getElementById('bracket').innerHTML=`
+  <div class="bracket-col">
+    <div class="bracket-col-label">Semi-Finals</div>
+    ${matchHtml(br.sf[0].teams,br.sf[0].winner)}
+    <div style="height:16px"></div>
+    ${matchHtml(br.sf[1].teams,br.sf[1].winner)}
+  </div>
+  <div style="display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;padding:0 12px;height:160px">
+    <div style="height:60px;width:1px;background:var(--border2)"></div>
+    <div style="width:40px;height:1px;background:var(--border2)"></div>
+    <div style="height:60px;width:1px;background:var(--border2)"></div>
+  </div>
+  <div class="bracket-col">
+    <div class="bracket-col-label">Final</div>
+    ${matchHtml(br.final.teams,br.final.winner)}
+  </div>
+  <div style="display:flex;align-items:center;padding:0 16px">
+    <div style="width:40px;height:1px;background:var(--gold)"></div>
+  </div>
+  <div class="bracket-col">
+    <div class="bracket-col-label">Champion</div>
+    <div class="champion">
+      <div class="champion-crown">🏆</div>
+      <div class="champion-name">DELHI CAPITALS</div>
+      <div class="champion-sub">IPL 2026 Winners</div>
+    </div>
+  </div>`;
+}
+
+// ===================== INSIGHTS =====================
+function renderInsights(players){
+  const totalSal=players.reduce((s,p)=>s+p.salary,0);
+  const topScorer=players.slice().sort((a,b)=>b.totalRuns-a.totalRuns)[0];
+  const topMOTM=players.slice().sort((a,b)=>b.motm-a.motm)[0];
+  const worstROI=players.filter(p=>p.salary>5000000).sort((a,b)=>(b.salary/Math.max(b.totalRuns,1))-(a.salary/Math.max(a.totalRuns,1)))[0];
+  const bestROI=players.filter(p=>p.salary<5000000&&p.totalRuns>300).sort((a,b)=>b.totalRuns/b.salary-a.totalRuns/a.salary)[0];
+  const most6s=players.slice().sort((a,b)=>b.sixes-a.sixes)[0];
+  const totalRuns=players.reduce((s,p)=>s+p.totalRuns,0);
+  const insights=[
+    {t:'Tournament Champion',b:`Delhi Capitals dominated the group stage with a perfect 16/16 points — the only team to win every match — before beating Lucknow in the SF and MI in the Final.`},
+    {t:`Top Scorer: ${topScorer?.name}`,b:`${topScorer?.name} (${topScorer?.team}) led the run charts with ${topScorer?.totalRuns} runs across the tournament.`},
+    {t:`Best Value Pick`,b:bestROI?`${bestROI.name} (${bestROI.team}) scored ${bestROI.totalRuns} runs at a salary of just ₹${(bestROI.salary/100000).toFixed(1)}L — exceptional return on investment.`:'No data'},
+    {t:`Worst ROI`,b:worstROI?`${worstROI.name} (${worstROI.team}) earned ₹${(worstROI.salary/1000000).toFixed(1)}Cr but scored only ${worstROI.totalRuns} runs — the poorest value deal.`:'No data'},
+    {t:`Most MOM Awards`,b:`${topMOTM?.name} (${topMOTM?.team}) was the standout performer with ${topMOTM?.motm} Man of the Match awards.`},
+    {t:`Six-Hitting King`,b:`${most6s?.name} (${most6s?.team}) hit the most sixes — ${most6s?.sixes} — making them the most destructive batter in the tournament.`},
+    {t:`Total Runs: ${totalRuns.toLocaleString()}`,b:`Across all ${players.length} players and 10 teams, the tournament produced ${totalRuns.toLocaleString()} runs — an average of ${Math.round(totalRuns/players.length)} per player.`},
+  ];
+  document.getElementById('insights').innerHTML=insights.map(i=>`<div class="insight"><strong>${i.t}</strong>${i.b}</div>`).join('');
+}
+
+// ===================== SIDE PANEL =====================
+function openPanel(player){
+  document.getElementById('p-name').textContent=player.name;
+  document.getElementById('p-team').innerHTML=`<span class="team-dot" style="background:${TEAM_COLORS[player.team]||'#888'}"></span>${player.team}`;
+  document.getElementById('p-role').textContent=player.role;
+  document.getElementById('p-salary').textContent=`₹${(player.salary/100000).toFixed(1)}L`;
+  document.getElementById('p-stats').innerHTML=`
+    <div class="stat-row"><span class="stat-key">Total Runs</span><span class="stat-val">${player.totalRuns}</span></div>
+    <div class="stat-row"><span class="stat-key">Wickets</span><span class="stat-val">${player.wickets}</span></div>
+    <div class="stat-row"><span class="stat-key">Fours</span><span class="stat-val">${player.fours}</span></div>
+    <div class="stat-row"><span class="stat-key">Sixes</span><span class="stat-val">${player.sixes}</span></div>
+    <div class="stat-row"><span class="stat-key">Catches</span><span class="stat-val">${player.catches}</span></div>
+    <div class="stat-row"><span class="stat-key">Dot Balls</span><span class="stat-val">${player.dotBalls}</span></div>
+    <div class="stat-row"><span class="stat-key">Man of Match</span><span class="stat-val" style="color:var(--gold)">${player.motm}</span></div>`;
+  const maxScore=Math.max(...Object.values(player.matchScores),1);
+  document.getElementById('p-matches').innerHTML=`<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Match Scores</div>`+
+    Object.entries(player.matchScores).map(([opp,sc])=>`<div class="match-row">
+      <span class="match-opp">vs ${opp}</span>
+      <div class="match-bar-wrap"><div class="match-bar" style="width:${Math.round(sc/maxScore*100)}%;background:${TEAM_COLORS[player.team]||'var(--gold)'}"></div></div>
+      <span class="match-score">${sc}</span>
+    </div>`).join('');
+  document.getElementById('panel-overlay').classList.add('open');
+}
+
+function closePanel(e){
+  if(!e||e.target===document.getElementById('panel-overlay')){
+    document.getElementById('panel-overlay').classList.remove('open');
+  }
+}
+
+// ===================== TEAM FILTER CLICK =====================
+function filterByTeam(t){
+  FILTERS.team=t;
+  document.querySelectorAll('.team-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.team===t);
+  });
+  renderAll();
+}
+
+// ===================== RENDER ALL =====================
+function renderAll(){
+  const players=getFiltered();
+  renderKPIs(players);
+  renderPoints();
+  renderTeamRuns(players);
+  renderTopScorers(players);
+  renderWickets();
+  renderScatter(players);
+  renderBatting(players);
+  renderRoles(players);
+  renderSalary();
+  renderHeatmap();
+  renderMOTM(players);
+  renderInsights(players);
+}
+
+// ===================== INIT =====================
+populatePlayerDropdown();
+renderBracket();
+renderAll();
+</script>
+</body>
+</html>
